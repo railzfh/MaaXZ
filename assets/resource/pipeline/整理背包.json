@@ -1,0 +1,11 @@
+{
+    "整理背包": {
+        "doc": "整理背包 的入口节点（新建脚本时自动生成；改编排从这里开始）",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "DoNothing"
+        }
+    }
+}

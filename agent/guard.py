@@ -64,15 +64,29 @@ MENU_THRESHOLD = 0.9
 MENU_MIN = 1  # 命中几个算数（两个模板各 1，命中任一即可）
 
 # --- 弹窗关闭：右上角 X ---
+# 实测教训：每个界面的 X 样式/位置都不同，单靠模板会失配（在「落潮驿站」弹窗上
+# 用从其它弹窗裁的模板只有 0.415）。所以策略是「模板先试，固定坐标兜底」——
+# X 是固定位置元素，兜底坐标比模板更可靠（见 docs pipeline-v2 §4）。
 CLOSE_TEMPLATES = ["叉1.png"]
-CLOSE_ROI = (560, 260, 130, 100)
-CLOSE_POINT = (602, 321)
+CLOSE_ROI = (560, 250, 150, 130)
+CLOSE_POINT = (636, 290)  # 右上角 X 的兜底点击位置（帧坐标）
 TEMPLATE_THRESHOLD = 0.75
 
 # --- 返回：左上角箭头 ---
 BACK_TEMPLATES = ["返回箭头1.png", "返回箭头2.png"]
-BACK_ROI = (0, 0, 110, 110)
-BACK_POINT = (36, 36)
+BACK_ROI = (0, 0, 130, 130)
+BACK_POINT = (40, 42)  # 左上返回箭头的兜底点击位置
+
+# --- 通用弹窗「确定」兜底 ---
+# 很多弹窗只有底部一个「确定」；实测 OCR 很稳（0.9999）。当 X / 返回模板都认不到时点它。
+CONFIRM_EXPECTED = ["确定"]
+CONFIRM_ROI = (220, 900, 280, 130)
+
+# 模板全失配时的兜底动作轮换顺序（按轮次取模）。三者的依据不同，所以轮换能覆盖更多界面：
+#   "close"   → 右上角 X 固定坐标（弹窗右上角几乎都是关闭）
+#   "back"    → 左上角返回固定坐标（子界面左上角几乎都是返回）
+#   "confirm" → 底部「确定」OCR（带确认按钮的弹窗）
+FALLBACK_ACTIONS = ("close", "back", "confirm")
 
 # --- 「确定退出游戏吗？」弹窗 ---
 # 实测（720x1280 帧）：文案「确定退出游戏吗？」在 (286,542,138,21)；
@@ -194,25 +208,45 @@ def ensure_main_ui(ctx: Context) -> tuple[bool, str]:
         if ok:
             return True, f"第 {probe} 轮确认主界面"
 
-        # ③ 其他弹窗（右上角 X）→ ④ 返回箭头 → ⑤ 兜底点左上
+        # ③ 其他弹窗：模板定位优先；模板失配就按固定坐标轮换兜底。
+        #
+        #    为什么要「轮换」而不是固定顺序选一个：X / 返回箭头 / 确定 都是位置固定但
+        #    样式各异的元素，任何单一策略都会在某些界面上失效。轮换能保证每个候选都被试到 ——
+        #    实测「落潮驿站」弹窗上模板 X 只有 0.415、模板返回只有 0.240，两个模板全废，
+        #    但底部的「确定」OCR 有 0.9999，靠轮换才救得回来。
         hit, score, box = close_button(ctx, frame)
         if hit and box is not None:
-            x, y = _center(box)
-            print(f"{LOG_PREFIX}   命中关闭按钮 score={score:.3f} → 点 ({x},{y})", flush=True)
-            _click(ctx, (x, y))
+            point = _center(box)
+            print(f"{LOG_PREFIX}   模板命中关闭按钮 score={score:.3f} → 点 {point}", flush=True)
+            _click(ctx, point)
             time.sleep(ACTION_WAIT)
             continue
 
         hit, score, box = back_button(ctx, frame)
         if hit and box is not None:
-            x, y = _center(box)
-            print(f"{LOG_PREFIX}   命中返回箭头 score={score:.3f} → 点 ({x},{y})", flush=True)
-            _click(ctx, (x, y))
+            point = _center(box)
+            print(f"{LOG_PREFIX}   模板命中返回箭头 score={score:.3f} → 点 {point}", flush=True)
+            _click(ctx, point)
             time.sleep(ACTION_WAIT)
             continue
 
-        print(f"{LOG_PREFIX}   未认出关闭/返回按钮 → 兜底点左上 {BACK_POINT}", flush=True)
-        _click(ctx, BACK_POINT)
+        # 模板都不认：轮流用「右上 X 固定坐标 / 左上返回固定坐标 / 底部确定(OCR)」
+        action = FALLBACK_ACTIONS[probe % len(FALLBACK_ACTIONS)]
+        if action == "confirm":
+            ok2, text, cbox = match_ocr(ctx, frame, CONFIRM_EXPECTED, CONFIRM_ROI)
+            if ok2 and cbox is not None:
+                point = _center(cbox)
+                print(f"{LOG_PREFIX}   兜底：OCR 命中「{text}」→ 点 {point}", flush=True)
+            else:
+                point = CLOSE_POINT
+                print(f"{LOG_PREFIX}   兜底：未认出「确定」→ 点右上角 X {point}", flush=True)
+        elif action == "back":
+            point = BACK_POINT
+            print(f"{LOG_PREFIX}   兜底：点左上返回 {point}", flush=True)
+        else:
+            point = CLOSE_POINT
+            print(f"{LOG_PREFIX}   兜底：点右上角 X {point}", flush=True)
+        _click(ctx, point)
         time.sleep(ACTION_WAIT)
 
     return False, f"探测 {MAX_PROBES} 轮仍未回到主界面"
