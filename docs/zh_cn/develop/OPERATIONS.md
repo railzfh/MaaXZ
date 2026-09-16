@@ -151,8 +151,6 @@ MaaXZ/
 
 ### 3.3 Agent（Python 自定义逻辑）
 
-契约只有一条：**pipeline 里的名字 ↔ Python 装饰器里的名字必须一致**。
-
 ```python
 # agent/my_action.py
 from maa.agent.agent_server import AgentServer
@@ -175,6 +173,45 @@ AgentServer.join()
 - **不要自己启动 AgentServer**：通用 UI / 插件调试时会自动拉起并传入 `socket_id`。
 - **不需要**在 agent 里创建 Resource/Tasker/Controller：宿主已创建，通过 `context` 访问。
 - 打包时若用户机器没有 Python，需附带便携式解释器并改 `interface.json` 里的 `child_exec`。
+
+#### 现成可用的通用守卫：`maa_agent_guard_ensure_main`
+
+**用途**：任务主体开始前保证界面在「游戏主界面」。不满足就交替点返回/叉，拉不回来**硬失败**
+（走 `on_error` 停下，绝不在未知界面上乱点）。
+
+**用法**：每个任务的 `next` 首步引用它。
+
+```jsonc
+"你的任务入口": {
+    "doc": "…",
+    "recognition": { "type": "DirectHit" },
+    "action": { "type": "DoNothing" },
+    "next": ["通用_确保主界面", "任务第一步"]     // ← 守卫在前
+}
+```
+
+节点已内置在 `assets/resource/pipeline/通用_确保主界面.json`（含成功/失败两个落脚点）。
+
+**它怎么判「主界面」**（两者同时成立）：
+
+| 判据 | 配置项 | 实测 |
+| --- | --- | --- |
+| 顶部玩家名含区服前缀 | `PLAYER_EXPECTED=["s521"]` + `PLAYER_ROI` | OCR 0.999 |
+| 底部功能条模板命中 | `MENU_TEMPLATES` + `MENU_ROI` + `MENU_THRESHOLD=0.9` | 主界面 0.97，子界面 **0.33** |
+
+**处理优先级**（`agent/guard.py` 的 `ensure_main_ui`）：
+
+1. **退出确认弹窗最先处理** —— 它是覆盖层，主界面元素在其后仍可见，所以不能先判「已在主界面」就放行。
+   只点「再玩一会」（认不到文字就用固定兜底坐标），**绝不碰「退出游戏」**。
+2. 判定主界面 → 通过
+3. 弹窗右上角 X → 4. 左上返回箭头 → 5. 兜底点左上
+
+**换游戏怎么改**：只改 `agent/guard.py` 顶部「项目配置区」的 ROI / 文案 / 模板名；
+下面的检测原语与决策循环是通用的（用 `run_recognition_direct` 内联参数，不需要在 pipeline 里建探测节点）。
+
+**注意**：`maasf3_run` 是 headless runner，**不会拉起 agent 进程**，Custom 动作必然报
+`Action is null [param.name=...]`。要真跑 agent 得用通用 UI（MFAAvalonia），或自己组装
+`AgentClient.create_tcp → bind(resource) → connect()` + 起 `python agent/main.py <端口>`。
 
 ---
 
@@ -288,6 +325,13 @@ git tag v1.0.0 && git push origin v1.0.0
 | 16 | **冷启动会连弹多个公告/活动弹窗**，且公告先于登录界面出现（冷启动要 20s+） | 用「自环分发」写法处理：`公告_关闭`（OCR 认标题「公告」→ 点右上 X）`next: ["公告_关闭","分诊"]` 连续关叠着的多个 + `max_hit` 兜底；另有 `公告_确定` 兜底只认到底部按钮的公告。见 `启动游戏.json` |
 | 17 | **「离线收益」弹窗时序不稳**（有时不出现、出现后会自动消失） | 给它较长识别窗口 + 高频轮询（`timeout: 8000` + `rate_limit: 500`），抓不到就把「主界面」放在 `next` 末位兜底 —— 别让它挡住任务成功 |
 | 18 | `next` 里摘掉节点会让它变成 lint 报的「不可达节点」 | 每个弹窗处理节点都要有入边；用 `分诊`（DirectHit + DoNothing）当分发入口把候选串起来 |
+| 19 | **`maasf3_run` 不会拉起 agent 进程** → Custom 动作报 `Action is null [param.name=...]` | 它是 headless runner；真跑 agent 要用通用 UI，或自己组装 AgentClient + 子进程（见 §3.3 守卫小节） |
+| 20 | **`controller.cached_image` 是缓存、不会自动刷新** | agent 循环里连续判定会一直对着同一张旧图（表现为每轮 score 一模一样）。必须用 `post_screencap().wait().get()` 取新帧 |
+| 21 | **一轮里多次截图会导致判定自相矛盾** | 每个探测各自截图时，顶部判定与底部判定基于不同时刻 → 出现「顶部命中、底部不命中」的横跳。**一轮只截一帧，所有判定共用** |
+| 22 | 底部功能条用 OCR 认中文很不稳（实测只认到 1/5，且「比斗」易看成「比武」） | 改用模板匹配：主界面 0.97、子界面 0.33，判别力强得多。模板见 `主界面入口_宗门.png` / `主界面入口_游历.png` |
+| 23 | **退出确认弹窗是覆盖层**，其后的主界面元素仍可见 | 守卫必须先处理退出弹窗再判主界面，否则会带着阻塞弹窗进入任务主体。该弹窗按钮实测：`再玩一会`(247,741,72,23)、`退出游戏`(400,733,70,21) |
+| 24 | 返回键热区比图标大得多 | 帧坐标 (36,36)/(38,39) 与 (57,58) 实测都能触发返回；模板框中心未必等于最佳点击点 |
+| 25 | 自建测试夹具时**不能在父进程 import `maa.agent.agent_server`** | import 会把该进程切成 AgentServer 模式，之后 `Resource()` 直接抛 `Failed to create resource`（AgentServer 不实现该 API） |
 | 10 | `tools/validate_schema.py` 在 Windows 本地报 `UnicodeEncodeError: 'gbk' codec can't encode '\u2713'` | 它打印 `✓`/`❌`，GBK 控制台编不出来（CI 是 ubuntu 所以不炸）。跑之前设 `$env:PYTHONIOENCODING='utf-8'`。**这是编码问题不是校验失败** |
 | 11 | `tools/requirements.txt` 只写了 `json-with-comments`，但 `validate_schema.py` 还需要 `jsonschema` / `referencing` | 手动补装：`pip install jsonschema==4.26.0 referencing==0.37.0`（CI 的 `check.yml` 里也是单独装的） |
 

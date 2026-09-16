@@ -1,0 +1,38 @@
+{
+    "通用_确保主界面": {
+        "doc": "万能前置守卫：任务主体开始前先调它。由 Python agent 的 maa_agent_guard_ensure_main 负责循环——已在主界面则直接通过；否则交替点「返回 / 叉」并重新判定，直到回主界面或超出上限（超出即硬失败，任务链走 on_error 停下）。项目里所有任务的 next 首步都应引用本节点",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "maa_agent_guard_ensure_main"
+            }
+        },
+        "next": [
+            "通用_守卫完成"
+        ],
+        "on_error": [
+            "通用_守卫失败"
+        ]
+    },
+    "通用_守卫完成": {
+        "doc": "守卫通过后的落脚点：界面确认在主界面，任务的真正主体从这里接下去（把它的 next 改成你的第一步）",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "DoNothing"
+        }
+    },
+    "通用_守卫失败": {
+        "doc": "守卫拉不回主界面时的终点：到此停下，不在未知界面上乱点。可在此挂通知/截图节点做诊断",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "DoNothing"
+        }
+    }
+}
