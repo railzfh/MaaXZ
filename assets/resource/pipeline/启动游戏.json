@@ -1,0 +1,239 @@
+{
+    "启动游戏": {
+        "doc": "任务入口：从桌面按包名拉起《太古仙尊》，等冷启动后进入协议/登录界面",
+        "action": {
+            "type": "StartApp",
+            "param": {
+                "package": "com.xyjx.hardtime.aligames"
+            }
+        },
+        "post_delay": 8000,
+        "next": [
+            "隐私协议_同意",
+            "验证区服"
+        ]
+    },
+    "隐私协议_同意": {
+        "doc": "首次启动的用户隐私协议弹窗：点右下金色「同意」（左侧「拒绝并退出」绝不能点）",
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "同意"
+                ],
+                "roi": [
+                    420,
+                    950,
+                    150,
+                    60
+                ],
+                "threshold": 0.3
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": true
+            }
+        },
+        "post_delay": 2000,
+        "next": [
+            "验证区服"
+        ]
+    },
+    "验证区服": {
+        "doc": "校验当前所选区服是否为 521 区（登录界面显示「五百二十一 川流」）；命中则点「开始游戏」，未命中转去换区",
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "五百二十一"
+                ],
+                "roi": [
+                    180,
+                    820,
+                    380,
+                    60
+                ],
+                "threshold": 0.3
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    357,
+                    990
+                ]
+            }
+        },
+        "post_delay": 1500,
+        "next": [
+            "公告_确定",
+            "关闭离线收益",
+            "主界面"
+        ],
+        "on_error": [
+            "打开区服列表"
+        ]
+    },
+    "打开区服列表": {
+        "doc": "区服不是 521 时：点登录界面的区服行，展开选区面板",
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "区"
+                ],
+                "roi": [
+                    200,
+                    830,
+                    320,
+                    40
+                ],
+                "threshold": 0.3
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": true
+            }
+        },
+        "post_delay": 2000,
+        "next": [
+            "选择521区"
+        ]
+    },
+    "选择521区": {
+        "doc": "在选区面板的「最近登录」里点「五百二十一 川流」",
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "五百二十一"
+                ],
+                "roi": [
+                    60,
+                    300,
+                    420,
+                    80
+                ],
+                "threshold": 0.3
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": true
+            }
+        },
+        "post_delay": 2500,
+        "next": [
+            "验证区服"
+        ],
+        "on_error": [
+            "主界面"
+        ]
+    },
+    "公告_确定": {
+        "doc": "开服公告弹窗：点底部「确定」关闭（点完会回登录界面，需再点开始游戏）",
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "确定"
+                ],
+                "roi": [
+                    220,
+                    920,
+                    280,
+                    90
+                ],
+                "threshold": 0.3
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": true
+            }
+        },
+        "post_delay": 2000,
+        "next": [
+            "验证区服"
+        ]
+    },
+    "关闭离线收益": {
+        "doc": "进游戏后的「离线收益」结算弹窗：点右上角 X 关闭",
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "离线收益"
+                ],
+                "roi": [
+                    240,
+                    250,
+                    240,
+                    60
+                ],
+                "threshold": 0.3
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    618,
+                    307
+                ]
+            }
+        },
+        "post_delay": 1500,
+        "next": [
+            "主界面"
+        ]
+    },
+    "主界面": {
+        "doc": "终点：游戏主界面。以玩家名（含区服前缀 s521）与底部「宗门」入口同时命中为判据",
+        "recognition": {
+            "type": "And",
+            "param": {
+                "all_of": [
+                    {
+                        "type": "OCR",
+                        "param": {
+                            "expected": [
+                                "s521"
+                            ],
+                            "roi": [
+                                100,
+                                10,
+                                300,
+                                60
+                            ]
+                        }
+                    },
+                    {
+                        "type": "OCR",
+                        "param": {
+                            "expected": [
+                                "宗门"
+                            ],
+                            "roi": [
+                                20,
+                                940,
+                                120,
+                                110
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing"
+        }
+    }
+}

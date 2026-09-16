@@ -36,6 +36,8 @@
 6. **28MB 的 OCR 模型不入库**：`assets/resource/model/ocr/` 被 `.gitignore` 忽略，别 `git add -f`。
 7. **改 pipeline 后必须重跑校验**：`maasf3_check`（语义引擎，约 50ms）。改 `interface.json` 同样要跑。
 8. **`maasf3_run` 会真的操作设备**（点击/滑动）。试跑一律用 `dryRun`（动作全 DoNothing）。
+9. **pipeline 一律写 V2**（`recognition` / `action` = `{ type, param }`，参数进 `param`）。V1 平铺能跑但不要写 —— 见 [pipeline-v2.md](./pipeline-v2.md)。
+10. **显式点击坐标的两种场合**：识别只做校验但点击位置固定时、以及 `DirectHit` 配 `Click` 时（DirectHit 识别框是整屏，`target: true` = 点屏幕正中）。
 
 ---
 
@@ -62,24 +64,37 @@ MaaXZ/
 
 ### 3.1 Pipeline 节点
 
+> **写法一律用 V2**：`recognition` / `action` 各是 `{ type, param }` 对象，类型专属参数全放 `param`。
+> 完整规范见 [pipeline-v2.md](./pipeline-v2.md)（本仓库内置）。V1 平铺能跑但**不要写**，工具会报 `form: "v1"` 警告。
+
 ```jsonc
 {
     "节点名": {
-        "doc": "干什么用的（必填）",
-        "recognition": "OCR",              // 怎么认
-        "expected": ["开始", "点击开始"],   // 认什么
-        "action": "Click",                 // 认到后做什么
-        "next": ["下一个节点"],             // 之后去哪
-        "roi": [0, 0, 0, 0],               // 限定识别区域，[0,0,0,0]=全屏
-        "timeout": 20000,                  // 识别超时 ms，-1=一直等
-        "on_error": ["错误处理节点"]        // 超时/失败的去处
+        "doc": "干什么用的（必填，lint 会查）",
+        "recognition": {
+            "type": "OCR",
+            "param": { "expected": ["开始"], "roi": [500, 600, 200, 60], "threshold": 0.3 }
+        },
+        "action": {
+            "type": "Click",
+            "param": { "target": true }        // true = 点刚识别到的位置
+        },
+        "next": ["下一个节点"],                 // 候选列表：从上到下第一个命中的赢
+        "on_error": ["错误处理节点"],           // 识别超时/动作失败的去处
+        "post_delay": 500                       // 动作后等待 ms
     }
 }
 ```
 
-**识别类型（10 种）**
+**三条最容易踩的**（详见 pipeline-v2.md §4）：
 
-| type | 用途 | 关键参数 |
+1. `target: true` 点的是**识别框中心**。所以「识别用来校验、点击位置固定」时要显式写 `target: [x, y]`。
+2. **`DirectHit` 配 `target: true` 等于点屏幕正中**（DirectHit 的识别框是整屏）。纯动作节点必须显式写坐标。
+3. 类型没有参数时 `param` 可省；`recognition` / `action` 整个省略时分别按 `DirectHit` / `DoNothing`。
+
+**识别类型（10 种）** —— 下表的「关键参数」都写在 `recognition.param` 里：
+
+| type | 用途 | 关键参数（放 param 内） |
 | --- | --- | --- |
 | `DirectHit` | 无条件命中，做「纯动作」节点 | 仅 `roi` |
 | `TemplateMatch` | 找按钮/图标（最常用） | `template`(必需)、`threshold`(默认 0.7)、`green_mask` |
@@ -91,9 +106,9 @@ MaaXZ/
 | `And` / `Or` | 组合子识别 | `all_of` / `any_of`（写节点名或内联对象） |
 | `Custom` | 交给 Python | `custom_recognition`(必需)、`custom_recognition_param` |
 
-**动作类型（常用）**
+**动作类型（常用）** —— 下表的「关键参数」都写在 `action.param` 里：
 
-| type | 用途 | 关键参数 |
+| type | 用途 | 关键参数（放 param 内） |
 | --- | --- | --- |
 | `DoNothing` | 只识别不动手 | — |
 | `Click` | 点击 | `target`：`true`=识别框中心 / 节点名 / `[x,y]` / `[x,y,w,h]` |
@@ -264,6 +279,12 @@ git tag v1.0.0 && git push origin v1.0.0
 | 7 | `TaskJob.wait()` 不接受 timeout；`Status` 是带 `.succeeded` 属性的包装类 | 别按旧习惯写 `.value` / int 比较 |
 | 8 | `package.json` 没有 `name` 字段 | 名字只存在于 `package-lock.json`；npm 会自动改成 `MaaXZ` |
 | 9 | 项目名做过全局替换后仍有残留（`.github/ISSUE_TEMPLATE/*.yaml` 里的 `MXX`） | 需要时按 `custom_configure.md` 改成 `MaaXZ` |
+| 10 | **V1 平铺写法不报错但会被工具判 `form: "v1"`**，且面板读不到 `roi`（选中节点画不出框） | 一律按 V2 写；`maasf3_pipeline action=validate` 可直接测单个节点是不是 V2 |
+| 11 | **截图预览会被缩放**：`maasf3_shot` 返回 720×1280 的图，但 `read_image` 预览常是 600×1066（×0.833） | 量坐标**必须在原图空间**（÷0.833），或直接用 `maasf3_ocr` / `maasf3_probe` 拿坐标 —— 目测预览图会差 ~20%，本项目已因此点错两次 |
+| 12 | **手动裁模板图后自检会假阳性**：在裁剪原点所在图上匹配该模板，永远 score=1.0（匹配到自己） | 裁完**必须用 OCR 交叉核对那一区域到底是什么**；并换一张图再匹配 |
+| 13 | 手写 `adb shell input tap` 吃**原生坐标**（1440×2560），不是 pipeline 的帧坐标（720×1280） | 手点时乘 k=native/短边（本项目 k=2）；pipeline 里写帧坐标，框架自己换算 |
+| 14 | MuMu 桌面点图标会误开「MuMu 商店」等第三方应用 | 启动游戏用 `action: StartApp` + `package`（毫秒级、不依赖图标位置），别模仿点击桌面图标 |
+| 15 | 游戏内左上有返回箭头，点错会弹「确定退出游戏吗？」 | 剧情页点「点击屏幕继续」时避开 y<100 与 x<60 区域；并给退出弹窗留兜底节点 |
 | 10 | `tools/validate_schema.py` 在 Windows 本地报 `UnicodeEncodeError: 'gbk' codec can't encode '\u2713'` | 它打印 `✓`/`❌`，GBK 控制台编不出来（CI 是 ubuntu 所以不炸）。跑之前设 `$env:PYTHONIOENCODING='utf-8'`。**这是编码问题不是校验失败** |
 | 11 | `tools/requirements.txt` 只写了 `json-with-comments`，但 `validate_schema.py` 还需要 `jsonschema` / `referencing` | 手动补装：`pip install jsonschema==4.26.0 referencing==0.37.0`（CI 的 `check.yml` 里也是单独装的） |
 
@@ -274,7 +295,8 @@ git tag v1.0.0 && git push origin v1.0.0
 | 想了解 | 去哪 |
 | --- | --- |
 | MaaFramework 快速开始 / 术语 | <https://maafw.com/docs/1.1-QuickStarted> |
-| Pipeline 协议完整字段 | `docs/` 上游文档，或 `maasf3_pipeline action=schema` |
+| **Pipeline 写法规范（V2）—— 写脚本前必读** | [pipeline-v2.md](./pipeline-v2.md)（本仓库内置的权威规范） |
+| Pipeline 协议完整字段 | [pipeline-v2.md](./pipeline-v2.md) §2/§3，或 `maasf3_pipeline action=schema` |
 | ProjectInterface 协议 | `deps/tools/interface.schema.json`（51KB）+ `docs/zh_cn/develop/how_to_develop.md` |
 | Agent 写法与打包 | `docs/zh_cn/develop/agent.md` |
 | 开发流程 / 发版 | `docs/zh_cn/develop/how_to_develop.md` |
