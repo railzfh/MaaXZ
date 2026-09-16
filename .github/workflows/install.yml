@@ -4,8 +4,10 @@ env:
   # 版本控制：
   # - 设置 VERSION 为空字符串时，下载 latest 版本
   # - 设置 VERSION 为具体版本号时（如 v1.2.3），下载指定版本
-  MAAFW_VERSION: ""
-  MFAA_VERSION: ""
+  # 说明：MaaXZ 显式钉死版本以保证产物可复现；
+  #       本地开发环境的 Python 绑定（pip MaaFw）应与 MAAFW_VERSION 保持一致。
+  MAAFW_VERSION: "v5.13.0"
+  MFAA_VERSION: "v2.16.1"
 
 on:
   push:
@@ -78,8 +80,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
 
       - name: Download MaaFramework
         uses: robinraju/release-downloader@v1
@@ -140,7 +140,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: MaaXXX-${{ matrix.os }}-${{ matrix.arch }}
+          name: MaaXZ-${{ matrix.os }}-${{ matrix.arch }}
           path: "install"
 
   changelog:

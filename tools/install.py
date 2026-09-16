@@ -91,11 +91,15 @@ def install_deps():
             install_path / "libs" / "MaaAgentBinary",
             dirs_exist_ok=True,
         )
-        shutil.copytree(
-            working_dir / "deps" / "bin" / "plugins",
-            install_path / "plugins" / get_dotnet_platform_tag(),
-            dirs_exist_ok=True,
-        )
+        plugins_dir = working_dir / "deps" / "bin" / "plugins"
+        if plugins_dir.exists():
+            shutil.copytree(
+                plugins_dir,
+                install_path / "plugins" / get_dotnet_platform_tag(),
+                dirs_exist_ok=True,
+            )
+        else:
+            print(f"Warning: {plugins_dir} does not exist, skipping plugin install.")
 
 
 

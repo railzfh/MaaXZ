@@ -5,22 +5,23 @@
 
 <div align="center">
 
-# MaaPracticeBoilerplate
+# MaaXZ
 
 </div>
 
-本仓库为 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) 所提供的项目模板，开发者可基于此模板直接创建自己的 MaaXXX 项目。
+**MaaXZ** 是《太古仙尊》的自动化助手，基于 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) 的图像识别与模拟控制能力实现。
 
 > **MaaFramework** 是基于图像识别技术、运用 [MAA](https://github.com/MaaAssistantArknights/MaaAssistantArknights) 开发经验去芜存菁、完全重写的新一代自动化黑盒测试框架。
 > 低代码的同时仍拥有高扩展性，旨在打造一款丰富、领先、且实用的开源库，助力开发者轻松编写出更好的黑盒测试程序，并推广普及。
 
 ## 即刻开始
 
-**请不要直接克隆本仓库！你应该通过模板创建自己的项目！**  
+本仓库由 [MaaPracticeBoilerplate](https://github.com/MaaXYZ/MaaPracticeBoilerplate) 项目模板创建。
 
-请阅读 [如何开发](./docs/zh_cn/develop/how_to_develop.md)。
-
-向本模板仓库提交改动前，请阅读 [PR 规范](./docs/zh_cn/develop/pull_request_guidelines.md)。
+- **AI / 开发操作手册：[OPERATIONS.md](./docs/zh_cn/develop/OPERATIONS.md)**（协议速查 + 干活 SOP + 已知坑，按需查阅）
+- 开发流程与仓库结构请阅读 [如何开发](./docs/zh_cn/develop/how_to_develop.md)。
+- 自定义识别 / 动作（Agent）请阅读 [AgentServer 编写指引](./docs/zh_cn/develop/agent.md)。
+- 提交改动前请阅读 [PR 规范](./docs/zh_cn/develop/pull_request_guidelines.md)。
 
 ## 生态共建
 
@@ -38,6 +39,6 @@ MAA 正计划建设为一类项目，而非舟的单一软件。
 
 本项目由 **[MaaFramework](https://github.com/MaaXYZ/MaaFramework)** 强力驱动！
 
-感谢以下开发者对本项目作出的贡献（下面链接改成你自己的项目地址）:
+感谢以下开发者对本项目作出的贡献:
 
-[![Contributors](https://contrib.rocks/image?repo=MaaXYZ/MaaFramework&max=1000)](https://github.com/MaaXYZ/MaaFramework/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=railzfh/MaaXZ&max=1000)](https://github.com/railzfh/MaaXZ/graphs/contributors)
