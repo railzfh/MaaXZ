@@ -285,6 +285,9 @@ git tag v1.0.0 && git push origin v1.0.0
 | 13 | 手写 `adb shell input tap` 吃**原生坐标**（1440×2560），不是 pipeline 的帧坐标（720×1280） | 手点时乘 k=native/短边（本项目 k=2）；pipeline 里写帧坐标，框架自己换算 |
 | 14 | MuMu 桌面点图标会误开「MuMu 商店」等第三方应用 | 启动游戏用 `action: StartApp` + `package`（毫秒级、不依赖图标位置），别模仿点击桌面图标 |
 | 15 | 游戏内左上有返回箭头，点错会弹「确定退出游戏吗？」 | 剧情页点「点击屏幕继续」时避开 y<100 与 x<60 区域；并给退出弹窗留兜底节点 |
+| 16 | **冷启动会连弹多个公告/活动弹窗**，且公告先于登录界面出现（冷启动要 20s+） | 用「自环分发」写法处理：`公告_关闭`（OCR 认标题「公告」→ 点右上 X）`next: ["公告_关闭","分诊"]` 连续关叠着的多个 + `max_hit` 兜底；另有 `公告_确定` 兜底只认到底部按钮的公告。见 `启动游戏.json` |
+| 17 | **「离线收益」弹窗时序不稳**（有时不出现、出现后会自动消失） | 给它较长识别窗口 + 高频轮询（`timeout: 8000` + `rate_limit: 500`），抓不到就把「主界面」放在 `next` 末位兜底 —— 别让它挡住任务成功 |
+| 18 | `next` 里摘掉节点会让它变成 lint 报的「不可达节点」 | 每个弹窗处理节点都要有入边；用 `分诊`（DirectHit + DoNothing）当分发入口把候选串起来 |
 | 10 | `tools/validate_schema.py` 在 Windows 本地报 `UnicodeEncodeError: 'gbk' codec can't encode '\u2713'` | 它打印 `✓`/`❌`，GBK 控制台编不出来（CI 是 ubuntu 所以不炸）。跑之前设 `$env:PYTHONIOENCODING='utf-8'`。**这是编码问题不是校验失败** |
 | 11 | `tools/requirements.txt` 只写了 `json-with-comments`，但 `validate_schema.py` 还需要 `jsonschema` / `referencing` | 手动补装：`pip install jsonschema==4.26.0 referencing==0.37.0`（CI 的 `check.yml` 里也是单独装的） |
 
