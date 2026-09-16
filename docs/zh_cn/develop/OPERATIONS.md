@@ -16,13 +16,16 @@
 | 目标包名 | `com.xyjx.hardtime.aligames` |
 | 控制器 | 仅 `Adb`（`安卓端`），已移除模板的 Win32 桌面端 |
 | 资源名 | `官服` → `./resource` |
-| 坐标基准 | **1280×720**（pipeline 里所有 `roi` / `target` / 坐标都按它写） |
+| 坐标基准 | **720×1280（竖屏）** —— 本项目游戏是竖屏，pipeline 里所有 `roi` / `target` 都按它写 |
 | MaaFramework | CI 钉 `MAAFW_VERSION: v5.13.0`；本地 pip 绑定应为 **MaaFw 5.13.0** |
 | 通用 UI | `MFAA_VERSION: v2.16.1`（MFAAvalonia，CI 打包时拼装） |
 | 设备 | MuMu 模拟器；adb 路径见下「工具链」 |
 
-坐标系换算铁律：MuMu 的 `exec-out screencap` 返回**原生 2560×1440**，
-量坐标前必须归一到短边 720；写成 pipeline 时也必须是 720 基准值。
+坐标系换算铁律：**设备原生 1440×2560，帧是 720×1280，系数 k=2**。
+- 写进 pipeline 的坐标 = **帧坐标**（短边 720）。
+- 手写 `adb shell input tap` 要乘 k（原生坐标）。
+- `maasf3_shot` 等工具返回/接受的都是帧坐标，已自动归一。
+- **不要用 `wm size` 当基准** —— 游戏自己转屏后它与实际帧不一致，一切以帧为准。
 
 ---
 
@@ -35,7 +38,7 @@
 5. **JSON 是 JSONC**：`interface.json` / pipeline 允许 `//` 注释；但**不能**有尾随逗号以外的语法错。
 6. **28MB 的 OCR 模型不入库**：`assets/resource/model/ocr/` 被 `.gitignore` 忽略，别 `git add -f`。
 7. **改 pipeline 后必须重跑校验**：`maasf3_check`（语义引擎，约 50ms）。改 `interface.json` 同样要跑。
-8. **`maasf3_run` 会真的操作设备**（点击/滑动）。试跑一律用 `dryRun`（动作全 DoNothing）。
+8. **验证可用性一律真跑，不要用 `dryRun`** —— `dryRun` 会把 `StartApp` 也换成 DoNothing，游戏根本不会启动，后续识别全部对空屏（实测必然失败）。`dryRun` 只能用来验证「识别逻辑」，验证不了「动作链」。真跑前先想清楚后果（会真点击）。
 9. **pipeline 一律写 V2**（`recognition` / `action` = `{ type, param }`，参数进 `param`）。V1 平铺能跑但不要写 —— 见 [pipeline-v2.md](./pipeline-v2.md)。
 10. **显式点击坐标的两种场合**：识别只做校验但点击位置固定时、以及 `DirectHit` 配 `Click` 时（DirectHit 识别框是整屏，`target: true` = 点屏幕正中）。
 
@@ -225,13 +228,14 @@ AgentServer.join()
 
 ### 4.1 加一个关卡/任务
 
-1. 写 pipeline 节点（每个都要 `doc`），入口节点起个好名字。
+1. 写 pipeline 节点（每个都要 `doc`），入口节点起个好名字。首步挂守卫：`"next": ["通用_确保主界面", "第一步"]`。
 2. 用 `interface.json` 的 `task` 注册：`{ "name": "界面上显示的", "entry": "入口节点名" }`。
-3. 校验：`maasf3_check`（必须 `ok: true`）。
-4. 试跑（零点击）：`maasf3_stage`（默认 `dryRun`，动作全 DoNothing）。
-5. 满意后才 `maasf3_run`（真实点击，务必知道后果）。
+3. 校验：`maasf3_check`（必须 `ok: true`），它同时会做协议与跨文件引用检查。
+4. **真跑验证**：`maasf3_run`（`dryRun: false`）。**不要用 dryRun 判可用性** —— 它会把 `StartApp` 也换掉，从关闭状态跑必然失败（见热区铁律 #8）。
+5. 排查失败用 trace：`trace.focus` 指出卡在哪个节点，`trace.failures` 给每轮识别候选与分数。
 
-一键版：`maasf3_stage` = 生成 pipeline → 注册 interface → lint → 试跑，一次做完。
+`maasf3_stage` = 生成 pipeline → 注册 interface → lint → 试跑一次，一次做完；
+但它的试跑默认是 dry-run，**只当「生成后的语法自检」用**，不能当作可用性验收。
 
 ### 4.2 加一个自定义识别/动作
 
@@ -258,7 +262,7 @@ AgentServer.join()
 # 在项目根执行；工具装在 node_modules（@nekosu/maa-tools@1.0.23）
 npx @nekosu/maa-tools check        # 协议校验（CI 的 check.yml 也跑这个）
 
-# JSON Schema 校验（Windows 必须先设 PYTHONIOENCODING，见「已知坑 #10」）
+# JSON Schema 校验（Windows 必须先设 PYTHONIOENCODING，见「已知坑 #28」）
 pip install json-with-comments jsonschema==4.26.0 referencing==0.37.0
 python tools/validate_schema.py \
   --schema-dir deps/tools \
@@ -340,8 +344,8 @@ git tag v1.0.0 && git push origin v1.0.0
 | 25 | 自建测试夹具时**不能在父进程 import `maa.agent.agent_server`** | import 会把该进程切成 AgentServer 模式，之后 `Resource()` 直接抛 `Failed to create resource`（AgentServer 不实现该 API） |
 | 26 | **同一个模板在不同帧上分数能差到 0.4 → 1.0** | 实测 `叉1.png` 在某个弹窗上：画面切换瞬间只有 **0.415**，正常帧 **1.000**；`返回箭头1.png` 同理（0.240 / 0.838）。所以「模板 + 固定坐标 + 确定OCR」三层兜底是**必要**的，不是冗余 |
 | 27 | 各界面左上返回箭头的**热区很大**且位置近似 | 帧坐标 (36,36)/(40,42)/(43,48) 实测都能触发返回。返回可以安全地用固定坐标点（但**必须先确认不在主界面**，否则主界面点返回会弹「确定退出游戏吗？」） |
-| 10 | `tools/validate_schema.py` 在 Windows 本地报 `UnicodeEncodeError: 'gbk' codec can't encode '\u2713'` | 它打印 `✓`/`❌`，GBK 控制台编不出来（CI 是 ubuntu 所以不炸）。跑之前设 `$env:PYTHONIOENCODING='utf-8'`。**这是编码问题不是校验失败** |
-| 11 | `tools/requirements.txt` 只写了 `json-with-comments`，但 `validate_schema.py` 还需要 `jsonschema` / `referencing` | 手动补装：`pip install jsonschema==4.26.0 referencing==0.37.0`（CI 的 `check.yml` 里也是单独装的） |
+| 28 | `tools/validate_schema.py` 在 Windows 本地报 `UnicodeEncodeError: 'gbk' codec can't encode '\u2713'` | 它打印 `✓`/`❌`，GBK 控制台编不出来（CI 是 ubuntu 所以不炸）。跑之前设 `$env:PYTHONIOENCODING='utf-8'`。**这是编码问题不是校验失败** |
+| 29 | `tools/requirements.txt` 只写了 `json-with-comments`，但 `validate_schema.py` 还需要 `jsonschema` / `referencing` | 手动补装：`pip install jsonschema==4.26.0 referencing==0.37.0`（CI 的 `check.yml` 里也是单独装的） |
 
 ---
 
