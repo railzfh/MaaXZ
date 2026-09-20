@@ -1,6 +1,60 @@
 {
     "整理背包": {
-        "doc": "整理背包 的入口节点（新建脚本时自动生成；改编排从这里开始）",
+        "doc": "整理背包 入口（占位空节点）。实际链路由 interface.json 的 task.pipeline_override 注入：整理背包 → 回到主界面（可复用部件①）→ … → 通用_守卫出口 → 打开储物袋。换个任务要接守卫时，复制这条 override 即可",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "DoNothing"
+        }
+    },
+    "整理背包_预览": {
+        "doc": "调用 agent 的 maa_agent_bag_preview：只识别不勾选，用来验证滑动方向、每屏格数、物品分类是否可靠。安全，不会选中任何物品",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "maa_agent_bag_preview"
+            }
+        },
+        "next": [
+            "整理背包_完成"
+        ],
+        "on_error": [
+            "整理背包_失败"
+        ]
+    },
+    "整理背包_勾选": {
+        "doc": "调用 agent 的 maa_agent_organize_bag：打开背包 → 一键出售弹窗 → 逐行向下扫描，每种物品只保留最先遇到的 2 格，第 3 格起勾选。绝不点「出售」",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "maa_agent_organize_bag"
+            }
+        },
+        "next": [
+            "整理背包_完成"
+        ],
+        "on_error": [
+            "整理背包_失败"
+        ]
+    },
+    "整理背包_完成": {
+        "doc": "勾选完成落脚点：待售物品已勾好但未出售，等人工确认后再点出售",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "DoNothing"
+        }
+    },
+    "整理背包_失败": {
+        "doc": "失败落脚点：例如背包/弹窗没打开、或一个格子都没识别到。任务到此停下，不做任何出售",
         "recognition": {
             "type": "DirectHit"
         },

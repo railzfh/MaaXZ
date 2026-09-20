@@ -1,0 +1,137 @@
+{
+    "储物袋_入口": {
+        "doc": "储物袋流程的入口空节点。真正的下一步由 interface.json 的 task.pipeline_override 注入（守卫 → 打开储物袋），这样才不用 DirectHit 直接串 next（那会遮蔽后续节点）",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "DoNothing"
+        }
+    },
+    "打开储物袋": {
+        "doc": "打开储物袋（背包）。识别=确认当前不在储物袋且在主界面，动作=点左上角头像。已开着则直接通过（幂等，不会重复点导致关掉背包）",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "maa_agent_open_bag"
+            }
+        },
+        "next": [
+            "打开储物袋_校验"
+        ],
+        "on_error": [
+            "储物袋_失败"
+        ]
+    },
+    "打开储物袋_校验": {
+        "doc": "校验储物袋已打开：OCR 左上角标题「储物袋」。认不到就 on_error 停下，不带着错的界面继续",
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "储物袋"
+                ],
+                "roi": [
+                    60,
+                    0,
+                    180,
+                    80
+                ],
+                "threshold": 0.3
+            }
+        },
+        "action": {
+            "type": "DoNothing"
+        },
+        "next": [
+            "整理储物袋"
+        ],
+        "on_error": [
+            "储物袋_失败"
+        ]
+    },
+    "整理储物袋": {
+        "doc": "点储物袋底部的「整理」，让同种物品聚到一起（幂等：弹窗开着时先关掉再点）。必须排在「打开一键出售」之前 —— 后面的「每种保留前 2 格」依赖同种物品在识别顺序里连续出现",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "maa_agent_sort_bag"
+            }
+        },
+        "next": [
+            "打开一键出售"
+        ],
+        "on_error": [
+            "储物袋_失败"
+        ]
+    },
+    "打开一键出售": {
+        "doc": "打开「一键出售」弹窗。识别=确认在储物袋且弹窗未开，动作=点底部「一键出售」按钮（OCR 定位，认不到用兜底坐标）",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "maa_agent_open_sell"
+            }
+        },
+        "next": [
+            "打开一键出售_校验"
+        ],
+        "on_error": [
+            "储物袋_失败"
+        ]
+    },
+    "打开一键出售_校验": {
+        "doc": "校验出售弹窗已打开：OCR 弹窗标题「一键出售」",
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "一键出售"
+                ],
+                "roi": [
+                    240,
+                    210,
+                    260,
+                    70
+                ],
+                "threshold": 0.3
+            }
+        },
+        "action": {
+            "type": "DoNothing"
+        },
+        "next": [
+            "储物袋_完成"
+        ],
+        "on_error": [
+            "储物袋_失败"
+        ]
+    },
+    "储物袋_完成": {
+        "doc": "落脚点：储物袋的「一键出售」弹窗已打开，可以开始整理/勾选",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "DoNothing"
+        }
+    },
+    "储物袋_失败": {
+        "doc": "失败落脚点：不在主界面 / 储物袋没打开 / 弹窗没打开。任务到此停下，不再点击",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "DoNothing"
+        }
+    }
+}

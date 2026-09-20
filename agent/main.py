@@ -12,9 +12,12 @@ import sys
 from maa.agent.agent_server import AgentServer
 from maa.tasker import Tasker
 
+import bag  # noqa: F401  maa_agent_organize_bag（整理背包）
+import flow  # noqa: F401  maa_agent_click_if_found（有则点、无则跳过）
 import guard  # noqa: F401  maa_agent_guard_ensure_main（通用前置守卫）
 import my_action  # noqa: F401
 import my_reco  # noqa: F401
+import pack  # noqa: F401  maa_agent_open_bag / open_sell / close_bag（储物袋基础操作）
 
 
 def main():

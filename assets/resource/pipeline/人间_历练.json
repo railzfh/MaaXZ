@@ -1,0 +1,589 @@
+{
+    "人间_历练": {
+        "doc": "【人间·历练】入口（占位空节点）。链路由 interface.json 的 task.pipeline_override 注入：人间_历练 → 回到主界面 → 人间_历练_进历练。流程：人间主界面 → 点「历练」→ 神游（能开始就开始，已在跑就直接叉）→ 跑商（选区认 2000，认到就点，认不到什么都不做）→ 左上返回回历练 → 圣兽 → 预约封印 → 叉 → 左上返回人间主界面。⚠️ 每一步都用 OCR 校验到达了哪个界面，避免「点了没生效」被当成成功",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "DoNothing"
+        }
+    },
+    "人间_历练_进历练": {
+        "doc": "人间主界面底部导航第 4 个「历练」→ 进历练地图（实测文字框 (589,995,78,48)）",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    628,
+                    1019
+                ]
+            }
+        },
+        "post_delay": 2500,
+        "next": [
+            "人间_历练_校验在历练"
+        ],
+        "on_error": [
+            "人间_历练_失败"
+        ]
+    },
+    "人间_历练_校验在历练": {
+        "doc": "断言：已在历练地图（底部有 奇遇/神游/跑商/垂钓/圣兽 这排功能）",
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "神游",
+                    "跑商"
+                ],
+                "roi": [
+                    150,
+                    980,
+                    280,
+                    70
+                ],
+                "threshold": 0.6
+            }
+        },
+        "action": {
+            "type": "DoNothing"
+        },
+        "next": [
+            "人间_历练_点神游"
+        ],
+        "on_error": [
+            "人间_历练_失败"
+        ]
+    },
+    "人间_历练_点神游": {
+        "doc": "点底部第 2 个「神游」（实测文字框 (175,998,82,46)）→ 打开神游弹窗，然后直接点最大次数",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    216,
+                    1021
+                ]
+            }
+        },
+        "post_delay": 2000,
+        "next": [
+            "人间_历练_神游_开始或跳过"
+        ],
+        "on_error": [
+            "人间_历练_失败"
+        ]
+    },
+    "人间_历练_神游_关弹窗": {
+        "doc": "点神游弹窗右上角的叉（实测 (603,160,34,37) → 中心 (620,178)）→ 回历练地图",
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "叉1.png"
+                ],
+                "roi": [
+                    540,
+                    120,
+                    180,
+                    220
+                ],
+                "threshold": [
+                    0.75
+                ]
+            }
+        },
+        "action": {
+            "type": "Click"
+        },
+        "post_delay": 1500,
+        "next": [
+            "人间_历练_校验回到历练_1"
+        ],
+        "on_error": [
+            "人间_历练_神游_关弹窗_兜底"
+        ]
+    },
+    "人间_历练_神游_关弹窗_兜底": {
+        "doc": "模板没认到叉时用实测坐标 (620,178) 兜底",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    620,
+                    178
+                ]
+            }
+        },
+        "post_delay": 1500,
+        "next": [
+            "人间_历练_校验回到历练_1"
+        ],
+        "on_error": [
+            "人间_历练_失败"
+        ]
+    },
+    "人间_历练_校验回到历练_1": {
+        "doc": "断言：神游弹窗已关、回到历练地图（能认到 跑商/圣兽）",
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "跑商",
+                    "圣兽"
+                ],
+                "roi": [
+                    280,
+                    980,
+                    400,
+                    70
+                ],
+                "threshold": 0.6
+            }
+        },
+        "action": {
+            "type": "DoNothing"
+        },
+        "next": [
+            "人间_历练_点跑商"
+        ],
+        "on_error": [
+            "人间_历练_失败"
+        ]
+    },
+    "人间_历练_点跑商": {
+        "doc": "点底部第 3 个「跑商」→ 进跑商界面（实测文字框 (317,998,81,47)）",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    357,
+                    1021
+                ]
+            }
+        },
+        "post_delay": 2500,
+        "next": [
+            "人间_历练_校验在跑商"
+        ],
+        "on_error": [
+            "人间_历练_失败"
+        ]
+    },
+    "人间_历练_校验在跑商": {
+        "doc": "断言：已在跑商界面。⚠️ ROI 必须完整包住目标：标题「跑商」实测在 (73,12,83,50)，右侧的钱数在 x=546+，所以用宽 ROI 覆盖标题与说明正文",
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "跑商",
+                    "本轮剩余时间",
+                    "每日资金",
+                    "商会"
+                ],
+                "roi": [
+                    0,
+                    0,
+                    520,
+                    300
+                ],
+                "threshold": 0.6
+            }
+        },
+        "action": {
+            "type": "DoNothing"
+        },
+        "next": [
+            "人间_历练_跑商_认2000"
+        ],
+        "on_error": [
+            "人间_历练_失败"
+        ]
+    },
+    "人间_历练_跑商_认2000": {
+        "doc": "★「有则点、无则跳过」用 Custom 动作实现（不再用 pipeline 的识别分支 —— 实测识别不命中会终止任务链）。在用户选区 [404,848,148,52] 找「2000」：找到就点，找不到就不点；两种情况都继续走到「返回」",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "maa_agent_click_if_found",
+                "custom_action_param": {
+                    "expected": [
+                        "2000"
+                    ],
+                    "roi": [
+                        404,
+                        848,
+                        148,
+                        52
+                    ],
+                    "threshold": 0.6,
+                    "target": [
+                        497,
+                        874
+                    ]
+                }
+            }
+        },
+        "post_delay": 500,
+        "next": [
+            "人间_历练_跑商_返回"
+        ],
+        "on_error": [
+            "人间_历练_跑商_返回"
+        ]
+    },
+    "人间_历练_校验回到历练_2": {
+        "doc": "断言：已从跑商回到历练地图（底部 5 个功能按钮里有 圣兽）",
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "圣兽",
+                    "神游",
+                    "跑商"
+                ],
+                "roi": [
+                    0,
+                    980,
+                    720,
+                    80
+                ],
+                "threshold": 0.6
+            }
+        },
+        "action": {
+            "type": "DoNothing"
+        },
+        "next": [
+            "人间_历练_点圣兽"
+        ],
+        "on_error": [
+            "人间_历练_跑商_返回_重试"
+        ]
+    },
+    "人间_历练_点圣兽": {
+        "doc": "点底部第 5 个「圣兽」→ 打开圣兽弹窗（实测文字框 (609,994,78,48)）",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    648,
+                    1018
+                ]
+            }
+        },
+        "post_delay": 2500,
+        "next": [
+            "人间_历练_圣兽_预约封印"
+        ],
+        "on_error": [
+            "人间_历练_失败"
+        ]
+    },
+    "人间_历练_圣兽_预约封印": {
+        "doc": "点「预约封印」（用户给的选区 [291,1058,138,55] → 中心 [360, 1085]）",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    360,
+                    1085
+                ]
+            }
+        },
+        "post_delay": 2000,
+        "next": [
+            "人间_历练_圣兽_关弹窗"
+        ],
+        "on_error": [
+            "人间_历练_圣兽_预约_兜底"
+        ]
+    },
+    "人间_历练_圣兽_预约_兜底": {
+        "doc": "OCR 没认到「预约封印」时用实测坐标 (360,1122) 兜底点一下",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    360,
+                    1085
+                ]
+            }
+        },
+        "post_delay": 2000,
+        "next": [
+            "人间_历练_圣兽_关弹窗"
+        ],
+        "on_error": [
+            "人间_历练_失败"
+        ]
+    },
+    "人间_历练_圣兽_关弹窗": {
+        "doc": "点圣兽弹窗右上角的叉（用户给的选区 [598,157,41,42] → 中心 [618, 178]）",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    618,
+                    178
+                ]
+            }
+        },
+        "post_delay": 1500,
+        "next": [
+            "人间_历练_回主界面"
+        ],
+        "on_error": [
+            "人间_历练_圣兽_关弹窗_兜底"
+        ]
+    },
+    "人间_历练_圣兽_关弹窗_兜底": {
+        "doc": "模板没认到叉时用实测坐标 (620,178) 兜底",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    618,
+                    178
+                ]
+            }
+        },
+        "post_delay": 1500,
+        "next": [
+            "人间_历练_回主界面"
+        ],
+        "on_error": [
+            "人间_历练_失败"
+        ]
+    },
+    "人间_历练_完成": {
+        "doc": "★成功终点：必须**真的回到人间主界面**才算成功（底部导航是 福地/门派/洞府/历练）。否则走 on_error 判失败 —— 这样「返回没生效」不会再伪装成成功",
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "福地",
+                    "门派",
+                    "洞府",
+                    "历练"
+                ],
+                "roi": [
+                    0,
+                    960,
+                    720,
+                    90
+                ],
+                "threshold": 0.6
+            }
+        },
+        "action": {
+            "type": "DoNothing"
+        },
+        "on_error": [
+            "人间_历练_失败"
+        ]
+    },
+    "人间_历练_失败": {
+        "doc": "失败落脚点：任何一步没达成（界面不对/按钮没点上）就到此停下，不继续乱点",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "DoNothing"
+        }
+    },
+    "人间_历练_跑商_返回": {
+        "doc": "从跑商退回历练：点左上返回箭头（用户给的选区 [10,4,50,72] → 中心 [35, 40]）",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    35,
+                    40
+                ]
+            }
+        },
+        "post_delay": 2500,
+        "next": [
+            "人间_历练_校验回到历练_2"
+        ],
+        "on_error": [
+            "人间_历练_失败"
+        ]
+    },
+    "人间_历练_跑商_返回_重试": {
+        "doc": "重试：同坐标再点一次",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    35,
+                    40
+                ]
+            }
+        },
+        "post_delay": 2500,
+        "next": [
+            "人间_历练_校验回到历练_3"
+        ],
+        "on_error": [
+            "人间_历练_失败"
+        ]
+    },
+    "人间_历练_校验回到历练_3": {
+        "doc": "断言（重试后）：已在历练地图",
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "expected": [
+                    "圣兽",
+                    "神游",
+                    "跑商"
+                ],
+                "roi": [
+                    0,
+                    980,
+                    720,
+                    80
+                ],
+                "threshold": 0.6
+            }
+        },
+        "action": {
+            "type": "DoNothing"
+        },
+        "next": [
+            "人间_历练_点圣兽"
+        ],
+        "on_error": [
+            "人间_历练_失败"
+        ]
+    },
+    "人间_历练_回主界面": {
+        "doc": "从历练地图退回人间主界面（左上返回，实测 (32,41)/(36,38) 均有效）",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    35,
+                    40
+                ]
+            }
+        },
+        "post_delay": 2500,
+        "next": [
+            "人间_历练_完成"
+        ],
+        "on_error": [
+            "人间_历练_回主界面_重试"
+        ]
+    },
+    "人间_历练_回主界面_重试": {
+        "doc": "第一次返回没生效 → 用 (32,41) 再点一次",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    35,
+                    40
+                ]
+            }
+        },
+        "post_delay": 2500,
+        "next": [
+            "人间_历练_完成"
+        ],
+        "on_error": [
+            "人间_历练_失败"
+        ]
+    },
+    "人间_历练_神游_开始或跳过": {
+        "doc": "★用一个 Custom 动作处理神游弹窗的**两种状态**：①未开始（有次数框+[开始神游]）→ 点最大次数(540,976)、再点开始神游(359,1039) ②**进行中**（显示「神游常羊山 x/70」进度条+[神魂归窍]，没有开始按钮）→ 整段跳过。两种都返回成功，不断链",
+        "recognition": {
+            "type": "DirectHit"
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "maa_agent_run_if_not_found",
+                "custom_action_param": {
+                    "skip_if_found": [
+                        "神魂归窍",
+                        "神游常羊山"
+                    ],
+                    "skip_roi": [
+                        0,
+                        960,
+                        720,
+                        140
+                    ],
+                    "steps": [
+                        {
+                            "click": [
+                                540,
+                                976
+                            ],
+                            "wait": 1.0
+                        },
+                        {
+                            "click": [
+                                359,
+                                1039
+                            ],
+                            "wait": 2.5
+                        }
+                    ]
+                }
+            }
+        },
+        "post_delay": 500,
+        "next": [
+            "人间_历练_神游_关弹窗"
+        ],
+        "on_error": [
+            "人间_历练_神游_关弹窗"
+        ]
+    }
+}

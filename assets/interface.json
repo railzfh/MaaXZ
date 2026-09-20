@@ -1,26 +1,17 @@
 {
-    // 本文件主要定义了通用 UI 的行为和显示内容
-    // 可参考文档和示例添加更多您需要的功能
-    // 文档：https://maafw.xyz/docs/3.3-ProjectInterfaceV2
-    // 示例：https://github.com/MaaXYZ/MaaFramework/blob/main/sample/interface.json
     "interface_version": 2,
     "name": "MaaXZ",
     "description": "《太古仙尊》自动化助手。由 MaaFramework 强力驱动！",
     "contact": "QQ群: 123456789",
     "license": "MIT",
     "welcome": "首次使用！欢迎使用 MaaXZ!",
-    // 填写项目地址和版本号可实现自动更新功能
     "github": "https://github.com/railzfh/MaaXZ",
     "version": "1.0.0",
-    // Mirror酱为第三方分发服务，新项目默认关闭
-    // 若有需要请联系 Mirror酱 开通，直接自行开启是无法使用的
-    // "mirrorchyan_rid": "MaaXZ",
-    // "mirrorchyan_multiplatform": true,
     "controller": [
         {
             "name": "安卓端",
             "type": "Adb",
-            "display_short_side": 720 // 默认缩放分辨率的短边长度
+            "display_short_side": 720
         }
     ],
     "resource": [
@@ -31,8 +22,6 @@
             ]
         }
     ],
-    // pipeline 里 action.type = "Custom" 的节点由这个 agent 执行（Python）
-    // 注意：child_args 相对 interface.json 所在目录（即 assets/），打包后为 <根>/agent/main.py
     "agent": {
         "child_exec": "python",
         "child_args": [
@@ -46,7 +35,70 @@
         },
         {
             "name": "确保主界面（守卫）",
-            "entry": "通用_确保主界面"
+            "entry": "回到主界面",
+            "pipeline_override": {
+                "通用_守卫出口": {
+                    "next": []
+                }
+            }
+        },
+        {
+            "name": "人间_历练",
+            "entry": "人间_历练",
+            "pipeline_override": {
+                "人间_历练": {
+                    "next": [
+                        "回到主界面"
+                    ]
+                },
+                "通用_守卫出口": {
+                    "next": [
+                        "人间_历练_进历练"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "整理背包（预览·只识别不勾选）",
+            "entry": "整理背包",
+            "pipeline_override": {
+                "整理背包": {
+                    "next": [
+                        "回到主界面"
+                    ]
+                },
+                "通用_守卫出口": {
+                    "next": [
+                        "打开储物袋"
+                    ]
+                },
+                "打开一键出售_校验": {
+                    "next": [
+                        "整理背包_预览"
+                    ]
+                }
+            }
+        },
+        {
+            "name": "整理背包（每种留2格）",
+            "entry": "整理背包",
+            "pipeline_override": {
+                "整理背包": {
+                    "next": [
+                        "回到主界面"
+                    ]
+                },
+                "通用_守卫出口": {
+                    "next": [
+                        "打开储物袋"
+                    ]
+                },
+                "打开一键出售_校验": {
+                    "next": [
+                        "整理背包_勾选"
+                    ]
+                }
+            }
         }
     ]
 }

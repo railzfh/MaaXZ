@@ -452,3 +452,6 @@ tools/ImageCropper/**/*.png
 
 config
 debug
+
+# MaaXZ 本地调试产物（E2E 夹具的运行日志 / agent 实时输出）
+_*.log
