@@ -147,6 +147,9 @@ class ClickIfFoundAction(CustomAction):
         frame = _frame(context)
         detail = context.run_recognition_direct(
             "OCR", JOCR(expected=expected, roi=roi, threshold=threshold), frame)
+        n = len(list(getattr(detail, "all_results", None) or [])) if detail is not None else -1
+        print(f"{LOG} click_if_found: 找 {expected} in {roi} → hit={getattr(detail,'hit',None)} "
+              f"候选={n}", flush=True)
 
         best = getattr(detail, "best_result", None) if detail is not None else None
         # ⚠️ 注意：不能只看 detail.hit —— 实测 all_results 会返回低于阈值的候选，
