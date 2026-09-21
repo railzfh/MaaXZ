@@ -4,6 +4,10 @@
 
 name: mirrorchyan_release
 
+# 同上：仓库默认 workflow 权限是 read，上传/发布类操作需要显式写权限
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
     inputs:
